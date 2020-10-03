@@ -240,8 +240,8 @@ export class DoorbirdStreamingDelegate implements CameraStreamingDelegate {
       " -map 0:0" +
       " -vcodec libx264" +
       " -pix_fmt yuvj420p" +
-      " -r " + request.video.fps +
-      " -f rawvideo" +
+      //" -r " + request.video.fps +
+      //" -f rawvideo" +
       " " + this.platform.config.ffmpegOptions +
       " -probesize 32 -analyzeduration 0 -fflags nobuffer" +
       " -preset veryfast" +

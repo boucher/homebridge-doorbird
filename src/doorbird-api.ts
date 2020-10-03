@@ -258,9 +258,8 @@ export class DoorbirdApi {
 
   // Return the URL for the Doorbird RTSP stream.
   rtspUrl(): string {
-    // let authString = `${path.indexOf("?") !== 0 ? "&" : "?"}http-user=${this.username}&http-password=${this.password}`;
-    // RTSP video is: rtsp://user@password:doorbird-ip:8557/mpeg/media.amp
-    return "rtsp://" + this.username + ":" + this.password + "@" + this.doorbirdAddress + ":8557/mpeg/media.amp";
+    //return "rtsp://" + this.username + ":" + this.password + "@" + this.doorbirdAddress + ":8557/mpeg/media.amp";
+    return this.authUrl("/bha-api/video.cgi")
   }
 
   // Return the URL for Doorbird image snapshots.
@@ -271,7 +270,7 @@ export class DoorbirdApi {
 
   // Return the right authentication URL for Doorbird API access.
   private authUrl(path: string): string {
-    let authString = `${path.indexOf("?") !== 0 ? "&" : "?"}http-user=${this.username}&http-password=${this.password}`;
+    let authString = `${path.indexOf("?") !== -1 ? "&" : "?"}http-user=${this.username}&http-password=${this.password}`;
     return "https://" + this.doorbirdAddress + path + authString;
   }
 
