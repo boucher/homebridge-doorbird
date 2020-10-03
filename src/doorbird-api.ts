@@ -4,7 +4,7 @@
  */
 import { AbortController } from "abort-controller";
 import { Logging } from "homebridge";
-import http from "http";
+import https from "https";
 import fetch, { Response, RequestInfo, RequestInit } from "node-fetch";
 import { DoorbirdPlatform } from "./doorbird-platform";
 import { DoorbirdDeviceInfo } from "./doorbird-types";
@@ -46,7 +46,7 @@ export class DoorbirdApi {
   }
 
   async login(): Promise<boolean> {
-    const response = await this.fetch(this.authUrl() + "/bha-api/info.cgi", { method: "GET" });
+    const response = await this.fetch(this.authUrl("/bha-api/info.cgi"), { method: "GET" });
 
     if(!response || !response.ok) {
       this.log("%s: Unable to retrieve device information from the Doorbird.", this.getName());
@@ -87,7 +87,7 @@ export class DoorbirdApi {
 
   // Activate night vision on the Doorbird.
   async lightOn(): Promise<boolean> {
-    const response = await this.fetch(this.authUrl() + "/bha-api/light-on.cgi", { method: "GET" });
+    const response = await this.fetch(this.authUrl("/bha-api/light-on.cgi"), { method: "GET" });
 
     if(!response || !response.ok) {
       this.log("%s: Unable to activate night vision on the Doorbird.", this.getName());
@@ -101,7 +101,7 @@ export class DoorbirdApi {
   async openDoor(relay: string): Promise<boolean> {
     const params = new URLSearchParams({ r: relay });
 
-    const response = await this.fetch(this.authUrl() + "/bha-api/open-door.cgi" + "?" + params, { method: "GET" });
+    const response = await this.fetch(this.authUrl("/bha-api/open-door.cgi?" + params), { method: "GET" });
 
     if(!response || !response.ok) {
       this.log("%s: Unable to unlock relay %s on the Doorbird.", this.getName(), relay);
@@ -113,17 +113,17 @@ export class DoorbirdApi {
 
   // Monitor events generated on the Doorbird.
   private async launchEventMonitor(): Promise<void> {
-    const url = this.authUrl() + "/bha-api/monitor.cgi?ring=doorbell,motionsensor";
+    const url = this.authUrl("/bha-api/monitor.cgi?ring=doorbell,motionsensor");
 
     // Make sure we maintain a heartbeat and recover in case the API connection dies.
-    const httpAgent = new http.Agent({ timeout: 1000 * DOORBIRD_HEARTBEAT_INTERVAL });
+    const httpsAgent = new https.Agent({ timeout: 1000 * DOORBIRD_HEARTBEAT_INTERVAL });
     const controller = new AbortController();
 
     // Open our connection to the Doorbird monitor API.
     let response;
 
     try {
-      response = await fetch(url, { method: "GET", agent: httpAgent, signal: controller.signal });
+      response = await fetch(url, { method: "GET", agent: httpsAgent, signal: controller.signal });
     } catch(error) {
       this.log("ERROR: Name: %s, Message: %s" + error.name, error.message);
     }
@@ -247,17 +247,18 @@ export class DoorbirdApi {
   // Return the URL for the Doorbird audio output stream.
   systemEventsUrl(): string {
     // Audio is: http://user@password:doorbird-ip/bha-api/monitor.cgi?ring=events
-    return this.authUrl() + "/bha-api/monitor.cgi?ring=doorbell,motionsensor";
+    return this.authUrl("/bha-api/monitor.cgi?ring=doorbell,motionsensor");
   }
 
   // Return the URL for the Doorbird audio output stream.
   audioUrl(): string {
     // Audio is: http://user@password:doorbird-ip/bha-api/audio-receive.cgi
-    return this.authUrl() + "/bha-api/audio-receive.cgi";
+    return this.authUrl("/bha-api/audio-receive.cgi");
   }
 
   // Return the URL for the Doorbird RTSP stream.
   rtspUrl(): string {
+    // let authString = `${path.indexOf("?") !== 0 ? "&" : "?"}http-user=${this.username}&http-password=${this.password}`;
     // RTSP video is: rtsp://user@password:doorbird-ip:8557/mpeg/media.amp
     return "rtsp://" + this.username + ":" + this.password + "@" + this.doorbirdAddress + ":8557/mpeg/media.amp";
   }
@@ -265,13 +266,13 @@ export class DoorbirdApi {
   // Return the URL for Doorbird image snapshots.
   snapshotUrl(): string {
     // Snapshots are: http://user@password:doorbird-ip/bha-api/image.cgi
-    return this.authUrl() + "/bha-api/image.cgi";
+    return this.authUrl("/bha-api/image.cgi");
   }
 
   // Return the right authentication URL for Doorbird API access.
-  private authUrl(): string {
-    // Authenticating against a Doorbird is done through: http://user@password:doorbird-ip.
-    return "http://" + this.username + ":" + this.password + "@" + this.doorbirdAddress;
+  private authUrl(path: string): string {
+    let authString = `${path.indexOf("?") !== 0 ? "&" : "?"}http-user=${this.username}&http-password=${this.password}`;
+    return "https://" + this.doorbirdAddress + path + authString;
   }
 
   // Utility to let us streamline error handling and return checking from the Doorbird API.
